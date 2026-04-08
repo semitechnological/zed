@@ -389,6 +389,35 @@ pub enum TextAlign {
     Right,
 }
 
+/// Case mapping applied at layout time while keeping **UTF-8 byte lengths** unchanged.
+///
+/// [`TextTransform::Uppercase`] and [`TextTransform::Lowercase`] use Unicode full case folding via
+/// [`char::to_uppercase`] / [`char::to_lowercase`]. If mapping a code point would change its UTF-8
+/// length, or would replace one scalar value with more than one character, the **original**
+/// character is kept. That keeps indices into the underlying buffer aligned with hit-testing and
+/// editor-style caret positions that use raw byte offsets.
+///
+/// [`TextTransform::Capitalize`] follows CSS-like word boundaries (see variant docs) with an extra
+/// rule for digit- or symbol-led words so those segments do not change following letters (stable
+/// offsets and predictable treatment of tokens like `"123abc"`).
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub enum TextTransform {
+    /// Do not transform text.
+    #[default]
+    None,
+    /// Uppercase text (Unicode, byte-length preserving — see [`TextTransform`]).
+    Uppercase,
+    /// Lowercase text (Unicode, byte-length preserving — see [`TextTransform`]).
+    Lowercase,
+    /// CSS-like capitalization for words that **start with a letter**: uppercase the first
+    /// letter, lowercase the rest. Words are maximal [`char::is_alphanumeric`] runs; other
+    /// characters act as separators (including `-`, so `foo-bar` → `Foo-Bar`).
+    ///
+    /// If the first character of a word is not alphabetic (digits, `_`, etc.), alphabetic
+    /// characters in that word are **unchanged** so numeric or symbol prefixes are not altered.
+    Capitalize,
+}
+
 /// The properties that can be used to style text in GPUI
 #[derive(Refineable, Clone, Debug, PartialEq)]
 #[refineable(Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -437,6 +466,14 @@ pub struct TextStyle {
 
     /// The number of lines to display before truncating the text
     pub line_clamp: Option<usize>,
+
+    /// Letter spacing added between characters, in pixels (positive widens, negative tightens).
+    ///
+    /// The platform text stack may clamp values outside the range it supports.
+    pub letter_spacing: Option<Pixels>,
+
+    /// Case transformation applied at layout time.
+    pub text_transform: Option<TextTransform>,
 }
 
 impl Default for TextStyle {
@@ -458,6 +495,8 @@ impl Default for TextStyle {
             text_overflow: None,
             text_align: TextAlign::default(),
             line_clamp: None,
+            letter_spacing: None,
+            text_transform: None,
         }
     }
 }
@@ -527,12 +566,18 @@ impl TextStyle {
             background_color: self.background_color,
             underline: self.underline,
             strikethrough: self.strikethrough,
+            letter_spacing: self.letter_spacing,
         }
     }
 }
 
 /// A highlight style to apply, similar to a `TextStyle` except
 /// for a single font, uniformly sized and spaced text.
+///
+/// Layout extras on the base [`TextStyle`] — such as [`TextStyle::letter_spacing`] and
+/// [`TextStyle::text_transform`] — are not stored here; highlighted segments inherit them
+/// from the surrounding style (see [`TextStyle::highlight`] and
+/// [`crate::StyledText::with_default_highlights`]).
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct HighlightStyle {
     /// The color of the text
