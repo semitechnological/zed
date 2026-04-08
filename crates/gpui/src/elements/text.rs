@@ -2,7 +2,7 @@ use crate::{
     ActiveTooltip, AnyView, App, Bounds, DispatchPhase, Element, ElementId, GlobalElementId,
     HighlightStyle, Hitbox, HitboxBehavior, InspectorElementId, IntoElement, LayoutId,
     MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, SharedString, Size, TextOverflow,
-    TextRun, TextStyle, TooltipId, TruncateFrom, WhiteSpace, Window, WrappedLine,
+    TextRun, TextStyle, TextTransform, TooltipId, TruncateFrom, WhiteSpace, Window, WrappedLine,
     WrappedLineLayout, register_tooltip_mouse_handlers, set_tooltip_on_window,
 };
 use anyhow::Context as _;
@@ -344,6 +344,7 @@ impl TextLayout {
         _: &mut App,
     ) -> LayoutId {
         let text_style = window.text_style();
+        let text = apply_text_transform_preserving_byte_len(text, text_style.text_transform);
         let font_size = text_style.font_size.to_pixels(window.rem_size());
         let line_height = text_style
             .line_height
@@ -644,6 +645,151 @@ impl TextLayout {
         // Remove trailing newline
         accumulator.pop();
         accumulator
+    }
+}
+
+/// Applies [`TextTransform`] for display while preserving UTF-8 byte length (see [`TextTransform`]).
+fn apply_text_transform_preserving_byte_len(
+    text: SharedString,
+    transform: Option<TextTransform>,
+) -> SharedString {
+    let Some(transform) = transform else {
+        return text;
+    };
+    if matches!(transform, TextTransform::None) {
+        return text;
+    }
+
+    let mut output = String::with_capacity(text.len());
+    match transform {
+        TextTransform::Uppercase => {
+            for ch in text.as_ref().chars() {
+                push_case_mapped_char(&mut output, ch, CaseMapKind::Upper);
+            }
+        }
+        TextTransform::Lowercase => {
+            for ch in text.as_ref().chars() {
+                push_case_mapped_char(&mut output, ch, CaseMapKind::Lower);
+            }
+        }
+        TextTransform::Capitalize => {
+            let mut word = Vec::<char>::new();
+            let flush = |out: &mut String, w: &[char]| {
+                if w.is_empty() {
+                    return;
+                }
+                let word_starts_with_letter = w[0].is_alphabetic();
+                let mut seen_first_alpha = false;
+                for &ch in w {
+                    if ch.is_alphabetic() {
+                        if word_starts_with_letter {
+                            if !seen_first_alpha {
+                                push_case_mapped_char(out, ch, CaseMapKind::Upper);
+                                seen_first_alpha = true;
+                            } else {
+                                push_case_mapped_char(out, ch, CaseMapKind::Lower);
+                            }
+                        } else {
+                            out.push(ch);
+                        }
+                    } else {
+                        out.push(ch);
+                    }
+                }
+            };
+
+            for ch in text.as_ref().chars() {
+                if ch.is_alphanumeric() {
+                    word.push(ch);
+                } else {
+                    flush(&mut output, &word);
+                    word.clear();
+                    output.push(ch);
+                }
+            }
+            flush(&mut output, &word);
+        }
+        TextTransform::None => unreachable!(),
+    }
+
+    SharedString::from(output)
+}
+
+#[derive(Copy, Clone)]
+enum CaseMapKind {
+    Upper,
+    Lower,
+}
+
+fn push_case_mapped_char(output: &mut String, ch: char, kind: CaseMapKind) {
+    let mapped = match kind {
+        CaseMapKind::Upper => ch.to_uppercase().collect::<String>(),
+        CaseMapKind::Lower => ch.to_lowercase().collect::<String>(),
+    };
+
+    if mapped.len() == ch.len_utf8() && mapped.chars().count() == 1 {
+        output.push_str(&mapped);
+    } else {
+        output.push(ch);
+    }
+}
+
+#[cfg(test)]
+mod text_transform_tests {
+    use super::apply_text_transform_preserving_byte_len;
+    use crate::{SharedString, TextTransform};
+
+    #[test]
+    fn text_transforms_preserve_bytes_and_spacing() {
+        let input = SharedString::from("hello   WORLD\tfoo-bar 123baz déjà vu");
+        let uppercase =
+            apply_text_transform_preserving_byte_len(input.clone(), Some(TextTransform::Uppercase));
+        let lowercase =
+            apply_text_transform_preserving_byte_len(input.clone(), Some(TextTransform::Lowercase));
+        let capitalize = apply_text_transform_preserving_byte_len(
+            input.clone(),
+            Some(TextTransform::Capitalize),
+        );
+
+        assert_eq!(uppercase.as_ref(), "HELLO   WORLD\tFOO-BAR 123BAZ DÉJÀ VU");
+        assert_eq!(lowercase.as_ref(), "hello   world\tfoo-bar 123baz déjà vu");
+        assert_eq!(capitalize.as_ref(), "Hello   World\tFoo-Bar 123baz Déjà Vu");
+        assert_eq!(input.len(), uppercase.len());
+        assert_eq!(input.len(), lowercase.len());
+        assert_eq!(input.len(), capitalize.len());
+    }
+
+    #[test]
+    fn text_transforms_skip_expanding_unicode_mappings() {
+        let input = SharedString::from("straße İSTANBUL");
+        let uppercase =
+            apply_text_transform_preserving_byte_len(input.clone(), Some(TextTransform::Uppercase));
+        let lowercase =
+            apply_text_transform_preserving_byte_len(input.clone(), Some(TextTransform::Lowercase));
+
+        assert_eq!(uppercase.as_ref(), "STRAßE İSTANBUL");
+        // `İ` lowercases to ASCII `i` in Turkish, which would shrink UTF-8 length; preserve `İ`.
+        assert_eq!(lowercase.as_ref(), "straße İstanbul");
+        assert_eq!(input.len(), uppercase.len());
+        assert_eq!(input.len(), lowercase.len());
+    }
+
+    #[test]
+    fn capitalize_leaves_letters_after_digit_prefix_unchanged() {
+        let input = SharedString::from("123BAZ");
+        let out = apply_text_transform_preserving_byte_len(
+            input.clone(),
+            Some(TextTransform::Capitalize),
+        );
+        assert_eq!(out.as_ref(), "123BAZ");
+        assert_eq!(input.len(), out.len());
+    }
+
+    #[test]
+    fn capitalize_lowercases_after_first_letter_in_letter_led_word() {
+        let input = SharedString::from("foo2BAR");
+        let out = apply_text_transform_preserving_byte_len(input, Some(TextTransform::Capitalize));
+        assert_eq!(out.as_ref(), "Foo2bar");
     }
 }
 
