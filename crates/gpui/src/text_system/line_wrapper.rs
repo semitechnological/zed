@@ -382,8 +382,8 @@ impl Boundary {
 mod tests {
     use super::*;
     use crate::{
-        Font, FontFeatures, FontRun, FontStyle, FontWeight, Hsla, PlatformTextSystem,
-        TestAppContext, TestDispatcher, TextRun, font,
+        Font, FontFeatures, FontRun, FontStyle, FontWeight, Hsla, TestAppContext,
+        TestDispatcher, TextRun, font,
     };
     #[cfg(target_os = "macos")]
     use crate::{WindowTextSystem, WrapBoundary};

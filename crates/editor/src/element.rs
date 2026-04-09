@@ -8872,6 +8872,7 @@ impl LineWithInvisibles {
                             background_color: text_style.background_color,
                             underline: text_style.underline,
                             strikethrough: text_style.strikethrough,
+                            letter_spacing: text_style.letter_spacing,
                         };
                         let line_layout = window
                             .text_system()
@@ -8942,6 +8943,7 @@ impl LineWithInvisibles {
                             background_color: text_style.background_color,
                             underline: text_style.underline,
                             strikethrough: text_style.strikethrough,
+                            letter_spacing: text_style.letter_spacing,
                         });
 
                         if editor_mode.is_full() && !highlighted_chunk.is_inlay {
@@ -9021,6 +9023,7 @@ impl LineWithInvisibles {
                         background_color: text_run.background_color,
                         underline: text_run.underline,
                         strikethrough: text_run.strikethrough,
+                        letter_spacing: text_run.letter_spacing,
                     });
                     cursor_col = segment_start_col;
                 }
@@ -9035,6 +9038,7 @@ impl LineWithInvisibles {
                         background_color: text_run.background_color,
                         underline: text_run.underline,
                         strikethrough: text_run.strikethrough,
+                        letter_spacing: text_run.letter_spacing,
                     });
                     cursor_col = segment_slice_end_col;
                 }
@@ -9051,6 +9055,7 @@ impl LineWithInvisibles {
                     background_color: text_run.background_color,
                     underline: text_run.underline,
                     strikethrough: text_run.strikethrough,
+                    letter_spacing: text_run.letter_spacing,
                 });
             }
             line_col = run_end_col;

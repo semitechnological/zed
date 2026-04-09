@@ -397,9 +397,11 @@ pub enum TextAlign {
 /// character is kept. That keeps indices into the underlying buffer aligned with hit-testing and
 /// editor-style caret positions that use raw byte offsets.
 ///
-/// [`TextTransform::Capitalize`] follows CSS-like word boundaries (see variant docs) with an extra
-/// rule for digit- or symbol-led words so those segments do not change following letters (stable
-/// offsets and predictable treatment of tokens like `"123abc"`).
+/// [`TextTransform::Capitalize`] matches CSS / Tailwind [`capitalize`][tw-cap] using Unicode word
+/// boundaries: only the first alphabetic code point in each word is uppercased; other characters
+/// are unchanged.
+///
+/// [tw-cap]: https://tailwindcss.com/docs/text-transform
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum TextTransform {
     /// Do not transform text.
@@ -409,12 +411,8 @@ pub enum TextTransform {
     Uppercase,
     /// Lowercase text (Unicode, byte-length preserving — see [`TextTransform`]).
     Lowercase,
-    /// CSS-like capitalization for words that **start with a letter**: uppercase the first
-    /// letter, lowercase the rest. Words are maximal [`char::is_alphanumeric`] runs; other
-    /// characters act as separators (including `-`, so `foo-bar` → `Foo-Bar`).
-    ///
-    /// If the first character of a word is not alphabetic (digits, `_`, etc.), alphabetic
-    /// characters in that word are **unchanged** so numeric or symbol prefixes are not altered.
+    /// `text-transform: capitalize` semantics (Tailwind class `capitalize`): per Unicode word, only
+    /// the first alphabetic character is mapped to uppercase; the rest of the string is unchanged.
     Capitalize,
 }
 

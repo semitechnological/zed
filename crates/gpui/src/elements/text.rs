@@ -17,6 +17,7 @@ use std::{
     rc::Rc,
     sync::Arc,
 };
+use unicode_segmentation::UnicodeSegmentation;
 
 impl Element for &'static str {
     type RequestLayoutState = TextLayout;
@@ -673,41 +674,20 @@ fn apply_text_transform_preserving_byte_len(
             }
         }
         TextTransform::Capitalize => {
-            let mut word = Vec::<char>::new();
-            let flush = |out: &mut String, w: &[char]| {
-                if w.is_empty() {
-                    return;
-                }
-                let word_starts_with_letter = w[0].is_alphabetic();
-                let mut seen_first_alpha = false;
-                for &ch in w {
-                    if ch.is_alphabetic() {
-                        if word_starts_with_letter {
-                            if !seen_first_alpha {
-                                push_case_mapped_char(out, ch, CaseMapKind::Upper);
-                                seen_first_alpha = true;
-                            } else {
-                                push_case_mapped_char(out, ch, CaseMapKind::Lower);
-                            }
-                        } else {
-                            out.push(ch);
-                        }
+            // Match CSS / Tailwind `capitalize` (UAX #29 word boundaries): uppercase only the first
+            // alphabetic character in each word; leave every other character unchanged. GPUI does not
+            // model `em` or other CSS units here — only this Unicode algorithm.
+            for piece in text.as_ref().split_word_bounds() {
+                let mut seen_first_letter = false;
+                for ch in piece.chars() {
+                    if !seen_first_letter && ch.is_alphabetic() {
+                        push_case_mapped_char(&mut output, ch, CaseMapKind::Upper);
+                        seen_first_letter = true;
                     } else {
-                        out.push(ch);
+                        output.push(ch);
                     }
                 }
-            };
-
-            for ch in text.as_ref().chars() {
-                if ch.is_alphanumeric() {
-                    word.push(ch);
-                } else {
-                    flush(&mut output, &word);
-                    word.clear();
-                    output.push(ch);
-                }
             }
-            flush(&mut output, &word);
         }
         TextTransform::None => unreachable!(),
     }
@@ -753,7 +733,7 @@ mod text_transform_tests {
 
         assert_eq!(uppercase.as_ref(), "HELLO   WORLD\tFOO-BAR 123BAZ DÉJÀ VU");
         assert_eq!(lowercase.as_ref(), "hello   world\tfoo-bar 123baz déjà vu");
-        assert_eq!(capitalize.as_ref(), "Hello   World\tFoo-Bar 123baz Déjà Vu");
+        assert_eq!(capitalize.as_ref(), "Hello   WORLD\tFoo-Bar 123Baz Déjà Vu");
         assert_eq!(input.len(), uppercase.len());
         assert_eq!(input.len(), lowercase.len());
         assert_eq!(input.len(), capitalize.len());
@@ -777,19 +757,23 @@ mod text_transform_tests {
     #[test]
     fn capitalize_leaves_letters_after_digit_prefix_unchanged() {
         let input = SharedString::from("123BAZ");
-        let out = apply_text_transform_preserving_byte_len(
-            input.clone(),
-            Some(TextTransform::Capitalize),
-        );
+        let out = apply_text_transform_preserving_byte_len(input.clone(), Some(TextTransform::Capitalize));
         assert_eq!(out.as_ref(), "123BAZ");
         assert_eq!(input.len(), out.len());
     }
 
     #[test]
-    fn capitalize_lowercases_after_first_letter_in_letter_led_word() {
+    fn capitalize_does_not_fold_remaining_letters() {
         let input = SharedString::from("foo2BAR");
         let out = apply_text_transform_preserving_byte_len(input, Some(TextTransform::Capitalize));
-        assert_eq!(out.as_ref(), "Foo2bar");
+        assert_eq!(out.as_ref(), "Foo2BAR");
+    }
+
+    #[test]
+    fn capitalize_handles_apostrophe_contractions_like_css() {
+        let input = SharedString::from("don't panic");
+        let out = apply_text_transform_preserving_byte_len(input, Some(TextTransform::Capitalize));
+        assert_eq!(out.as_ref(), "Don't Panic");
     }
 }
 
