@@ -94,7 +94,6 @@ impl RenderOnce for SplitButton {
                         offset: point(px(0.), px(1.)),
                         blur_radius: px(0.),
                         spread_radius: px(0.),
-                        inset: false,
                     }])
             })
     }

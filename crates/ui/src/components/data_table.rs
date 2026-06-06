@@ -15,7 +15,7 @@ use crate::{
 use gpui::{
     AbsoluteLength, DefiniteLength, DragMoveEvent, Entity, EntityId, FocusHandle, Length,
     ListHorizontalSizingBehavior, ListSizingBehavior, ListState, Point, ScrollHandle, Stateful,
-    UniformListScrollHandle, WeakEntity, list, transparent_black, uniform_list,
+    UniformListScrollHandle, WeakEntity, ZedGpuiCompat, list, transparent_black, uniform_list,
 };
 
 pub mod table_row;
@@ -1187,7 +1187,7 @@ impl RenderOnce for Table {
                                 interaction_state.as_ref(),
                                 |this, state| {
                                     this.track_scroll(
-                                        &state.read_with(cx, |s, _| s.scroll_handle.clone()),
+                                        state.read_with(cx, |s, _| s.scroll_handle.clone()),
                                     )
                                 },
                             ),

@@ -727,7 +727,7 @@ impl ContextMenu {
             action: Some(action.boxed_clone()),
             handler: Rc::new(move |context, window, cx| {
                 if let Some(context) = &context {
-                    window.focus(context, cx);
+                    window.focus(context);
                 }
                 window.dispatch_action(action.boxed_clone(), cx);
             }),
@@ -760,7 +760,7 @@ impl ContextMenu {
             action: Some(action.boxed_clone()),
             handler: Rc::new(move |context, window, cx| {
                 if let Some(context) = &context {
-                    window.focus(context, cx);
+                    window.focus(context);
                 }
                 window.dispatch_action(action.boxed_clone(), cx);
             }),
@@ -914,7 +914,7 @@ impl ContextMenu {
 
             if let SubmenuState::Open(open_submenu) = &self.submenu_state {
                 let focus_handle = open_submenu.entity.read(cx).focus_handle.clone();
-                window.focus(&focus_handle, cx);
+                window.focus(&focus_handle);
                 open_submenu.entity.update(cx, |submenu, cx| {
                     submenu.select_first(&SelectFirst, window, cx);
                 });
@@ -970,7 +970,7 @@ impl ContextMenu {
 
             if let SubmenuState::Open(open_submenu) = &self.submenu_state {
                 let focus_handle = open_submenu.entity.read(cx).focus_handle.clone();
-                window.focus(&focus_handle, cx);
+                window.focus(&focus_handle);
                 open_submenu.entity.update(cx, |submenu, cx| {
                     submenu.select_first(&SelectFirst, window, cx);
                 });
@@ -1021,7 +1021,7 @@ impl ContextMenu {
                     parent.ignore_blur_until = Some(Instant::now() + Duration::from_millis(200));
                 });
 
-                window.focus(&parent_focus, cx);
+                window.focus(&parent_focus);
             }
 
             return;
@@ -1132,7 +1132,7 @@ impl ContextMenu {
 
         if let SubmenuState::Open(open_submenu) = &self.submenu_state {
             let focus_handle = open_submenu.entity.read(cx).focus_handle.clone();
-            window.focus(&focus_handle, cx);
+            window.focus(&focus_handle);
             open_submenu.entity.update(cx, |submenu, cx| {
                 submenu.select_first(&SelectFirst, window, cx);
             });
@@ -1155,7 +1155,7 @@ impl ContextMenu {
             let parent_clone = parent.clone();
 
             let parent_focus = parent.read(cx).focus_handle.clone();
-            window.focus(&parent_focus, cx);
+            window.focus(&parent_focus);
 
             cx.emit(DismissEvent);
 
@@ -1567,7 +1567,7 @@ impl ContextMenu {
 
                         if *hovered {
                             this.clear_selected();
-                            window.focus(&this.focus_handle.clone(), cx);
+                            window.focus(&this.focus_handle.clone());
                             this.hover_target = HoverTarget::MainMenu;
                             this.submenu_safety_threshold_x = Some(mouse_pos.x - px(50.0));
 
@@ -1604,7 +1604,7 @@ impl ContextMenu {
                             {
                                 this.close_submenu(false, cx);
                                 this.clear_selected();
-                                window.focus(&this.focus_handle.clone(), cx);
+                                window.focus(&this.focus_handle.clone());
                                 cx.notify();
                             }
                         }
@@ -1706,7 +1706,8 @@ impl ContextMenu {
                         Anchor::TopRight
                     } else {
                         Anchor::TopLeft
-                    })
+                    }
+                    .into())
                     .snap_to_window_with_margin(px(8.0))
                     .child(
                         div()
@@ -1867,7 +1868,7 @@ impl ContextMenu {
                         item.on_hover(cx.listener(move |this, hovered, window, cx| {
                             if *hovered {
                                 this.clear_selected();
-                                window.focus(&this.focus_handle.clone(), cx);
+                                window.focus(&this.focus_handle.clone());
 
                                 if let SubmenuState::Open(open_submenu) = &this.submenu_state {
                                     if open_submenu.item_index != ix {
@@ -2241,7 +2242,7 @@ impl Render for ContextMenu {
         };
 
         if let Some(focus_handle) = focus_submenu.as_ref() {
-            window.focus(focus_handle, cx);
+            window.focus(focus_handle);
         }
 
         if is_wide_window {

@@ -30,9 +30,9 @@ impl ListHeader {
             start_slot: None,
             end_slot: None,
             end_hover_slot: None,
-            inset: false,
             toggle: None,
             on_toggle: None,
+            inset: false,
             selected: false,
         }
     }

@@ -162,7 +162,7 @@ impl RenderOnce for AiSettingItem {
             div()
                 .child(icon_element)
                 .with_animation(
-                    format!("icon-pulse-{}", id),
+                    SharedString::from(format!("icon-pulse-{}", id)),
                     Animation::new(Duration::from_secs(2))
                         .repeat()
                         .with_easing(pulsating_between(0.4, 0.8)),
@@ -174,7 +174,7 @@ impl RenderOnce for AiSettingItem {
         };
 
         let icon_container = div()
-            .id(icon_id)
+            .id(SharedString::from(icon_id))
             .relative()
             .flex_none()
             .tooltip(Tooltip::text(status_tooltip))
@@ -213,7 +213,7 @@ impl RenderOnce for AiSettingItem {
                             .child(Label::new(label).flex_shrink_0().truncate())
                             .child(
                                 div()
-                                    .id(source_id)
+                                    .id(SharedString::from(source_id))
                                     .min_w_0()
                                     .flex_none()
                                     .tooltip(Tooltip::text(source_tooltip))

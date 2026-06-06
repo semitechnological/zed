@@ -50,7 +50,7 @@ impl RenderOnce for ProjectEmptyState {
         let label = format!("Choose one of the options below to use the {}", self.label);
 
         v_flex()
-            .id(id)
+            .id(SharedString::from(id))
             .p_4()
             .size_full()
             .items_center()

@@ -227,7 +227,9 @@ impl RenderOnce for KeybindingHint {
 
         let mut base = h_flex();
 
-        base.text_style().font_style = Some(FontStyle::Italic);
+        base.text_style()
+            .get_or_insert_with(Default::default)
+            .font_style = Some(FontStyle::Italic);
 
         base.gap_1()
             .font_buffer(cx)
@@ -247,7 +249,6 @@ impl RenderOnce for KeybindingHint {
                         offset: point(px(0.), px(1.)),
                         blur_radius: px(0.),
                         spread_radius: px(0.),
-                        inset: false,
                     }])
                     .child(self.keybinding.size(rems_from_px(kb_size))),
             )

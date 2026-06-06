@@ -285,7 +285,7 @@ impl RenderOnce for ThreadItem {
         let icon_visible = self.icon_visible;
         let icon_container = || {
             h_flex()
-                .id(icon_id.clone())
+                .id(SharedString::from(icon_id.clone()))
                 .size_4()
                 .flex_none()
                 .justify_center()

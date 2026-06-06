@@ -289,7 +289,7 @@ fn show_menu<M: ManagedView>(
             if modal.focus_handle(cx).contains_focused(window, cx)
                 && let Some(previous_focus_handle) = previous_focus_handle.as_ref()
             {
-                window.focus(previous_focus_handle, cx);
+                window.focus(previous_focus_handle);
             }
             *menu2.borrow_mut() = None;
             window.refresh();
@@ -305,7 +305,7 @@ fn show_menu<M: ManagedView>(
     let focus_handle = new_menu.focus_handle(cx);
     window.on_next_frame(move |window, _cx| {
         window.on_next_frame(move |window, cx| {
-            window.focus(&focus_handle, cx);
+            window.focus(&focus_handle);
         });
     });
     *menu.borrow_mut() = Some(new_menu);
@@ -375,11 +375,13 @@ impl<M: ManagedView> Element for PopoverMenu<M> {
                     let offset = self.resolved_offset(window);
                     let mut anchored = anchored()
                         .snap_to_window_with_margin(px(8.))
-                        .anchor(self.anchor)
+                        .anchor(self.anchor.into())
                         .offset(offset);
                     if let Some(child_bounds) = element_state.child_bounds {
                         anchored =
-                            anchored.position(child_bounds.corner(self.resolved_attach()) + offset);
+                            anchored.position(
+                                child_bounds.corner(self.resolved_attach().into()) + offset,
+                            );
                     }
                     let mut element = deferred(anchored.child(div().occlude().child(menu.clone())))
                         .with_priority(1)

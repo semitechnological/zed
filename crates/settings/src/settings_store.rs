@@ -8,6 +8,7 @@ use futures::{
 };
 use gpui::{
     App, AppContext, AsyncApp, BorrowAppContext, Entity, Global, SharedString, Task, UpdateGlobal,
+    ZedForegroundExecutorCompat,
 };
 
 use paths::{local_settings_file_relative_path, task_file_name};
@@ -582,7 +583,7 @@ impl SettingsStore {
 
                         cx.update_global(|store: &mut SettingsStore, cx| {
                             store.set_user_settings(&new_text, cx).result().map(|_| ())
-                        })
+                        })?
                     }
                     .await;
 
@@ -617,7 +618,7 @@ impl SettingsStore {
         self.update_settings_file_inner(fs, move |old_text: String, cx: AsyncApp| {
             cx.read_global(|store: &SettingsStore, cx| {
                 store.new_text_for_update(old_text, |content| update(content, cx))
-            })
+            })?
         })
     }
 
@@ -629,7 +630,7 @@ impl SettingsStore {
         self.update_settings_file_inner(fs, move |old_text: String, cx: AsyncApp| {
             cx.read_global(|store: &SettingsStore, _cx| {
                 store.get_vscode_edits(old_text, &vscode_settings)
-            })
+            })?
         })
     }
 

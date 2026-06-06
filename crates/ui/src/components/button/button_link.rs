@@ -52,7 +52,7 @@ impl RenderOnce for ButtonLink {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let id = format!("{}-{}", self.label, self.link);
 
-        ButtonLike::new(id)
+        ButtonLike::new(SharedString::from(id))
             .size(ButtonSize::None)
             .child(
                 h_flex()

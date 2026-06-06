@@ -1,5 +1,5 @@
 use collections::HashMap;
-use gpui::{App, Global, InputLatencySnapshot, Window, WindowId, actions};
+use gpui::{App, Global, InputLatencySnapshot, Window, WindowId, ZedWindowCompat, actions};
 use hdrhistogram::Histogram;
 use std::time::Instant;
 
@@ -227,7 +227,7 @@ fn format_report(snapshot: &InputLatencySnapshot, previous: &ReporterState) -> S
         report.push_str("Delta Since Last Report\n");
         report.push_str("-----------------------\n");
         let prev_ts = prev_timestamp.format("%Y-%m-%d %H:%M:%S %Z");
-        let elapsed_secs = (now - *prev_timestamp).num_seconds().max(0);
+        let elapsed_secs = now.signed_duration_since(*prev_timestamp).num_seconds().max(0);
         report.push_str(&format!(
             "Previous report: {prev_ts} ({elapsed_secs}s ago)\n"
         ));

@@ -98,7 +98,23 @@ mod macos_build {
 
     /// Locate the gpui crate directory relative to this crate.
     fn find_gpui_crate_dir() -> PathBuf {
-        gpui::GPUI_MANIFEST_DIR.into()
+        let cargo_home = env::var_os("CARGO_HOME")
+            .map(PathBuf::from)
+            .or_else(|| env::var_os("HOME").map(|home| PathBuf::from(home).join(".cargo")))
+            .expect("CARGO_HOME or HOME must be set to locate gpui source");
+        let registry_src = cargo_home.join("registry/src");
+        let entries = std::fs::read_dir(&registry_src)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", registry_src.display()));
+
+        for entry in entries {
+            let entry = entry.expect("failed to read registry source entry");
+            let candidate = entry.path().join("gpui-0.2.2");
+            if candidate.join("src/gpui.rs").exists() {
+                return candidate;
+            }
+        }
+
+        panic!("failed to locate gpui-0.2.2 in {}", registry_src.display());
     }
 
     /// To enable runtime compilation, we need to "stitch" the shaders file with the generated header

@@ -137,7 +137,7 @@ impl<M: ManagedView> Element for RightClickMenu<M> {
                 let menu_element = element_state.menu.borrow_mut().as_mut().map(|menu| {
                     let mut anchored = anchored().snap_to_window_with_margin(px(8.));
                     if let Some(anchor) = this.anchor {
-                        anchored = anchored.anchor(anchor);
+                        anchored = anchored.anchor(anchor.into());
                     }
                     anchored = anchored.position(*element_state.position.borrow());
 
@@ -253,7 +253,7 @@ impl<M: ManagedView> Element for RightClickMenu<M> {
                                     && let Some(previous_focus_handle) =
                                         previous_focus_handle.as_ref()
                                 {
-                                    window.focus(previous_focus_handle, cx);
+                                    window.focus(previous_focus_handle);
                                 }
                                 *menu2.borrow_mut() = None;
                                 window.refresh();
@@ -269,13 +269,13 @@ impl<M: ManagedView> Element for RightClickMenu<M> {
                         let focus_handle = new_menu.focus_handle(cx);
                         window.on_next_frame(move |window, _cx| {
                             window.on_next_frame(move |window, cx| {
-                                window.focus(&focus_handle, cx);
+                                window.focus(&focus_handle);
                             });
                         });
                         *menu.borrow_mut() = Some(new_menu);
                         *position.borrow_mut() = if let Some(child_bounds) = child_bounds {
                             if let Some(attach) = attach {
-                                child_bounds.corner(attach)
+                                child_bounds.corner(attach.into())
                             } else {
                                 window.mouse_position()
                             }

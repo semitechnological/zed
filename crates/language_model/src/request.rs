@@ -44,8 +44,6 @@ impl LanguageModelImageExt for LanguageModelImage {
                 ImageFormat::Gif => image::ImageFormat::Gif,
                 ImageFormat::Bmp => image::ImageFormat::Bmp,
                 ImageFormat::Tiff => image::ImageFormat::Tiff,
-                ImageFormat::Ico => image::ImageFormat::Ico,
-                ImageFormat::Pnm => image::ImageFormat::Pnm,
                 ImageFormat::Svg => return None,
             };
             let dynamic_image =

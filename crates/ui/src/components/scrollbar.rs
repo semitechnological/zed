@@ -12,8 +12,8 @@ use gpui::{
     LayoutId, ListState, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, ParentElement,
     Pixels, Point, Position, Render, ScrollHandle, ScrollWheelEvent, Size, Stateful,
     StatefulInteractiveElement, Style, Styled, Task, UniformListDecoration,
-    UniformListScrollHandle, Window, ease_in_out, prelude::FluentBuilder as _, px, quad, relative,
-    size,
+    UniformListScrollHandle, Window, ease_in_out, point, prelude::FluentBuilder as _, px, quad,
+    relative, size,
 };
 use gpui_util::ResultExt;
 use smallvec::SmallVec;
@@ -236,7 +236,7 @@ impl<T: ScrollableHandle> UniformListDecoration for ScrollbarStateWrapper<T> {
         _cx: &mut App,
     ) -> gpui::AnyElement {
         ScrollbarElement {
-            origin: -scroll_offset,
+            origin: point(-scroll_offset.x, -scroll_offset.y),
             state: self.0.clone(),
         }
         .into_any()
@@ -930,7 +930,8 @@ impl ThumbState {
 
 impl ScrollableHandle for UniformListScrollHandle {
     fn max_offset(&self) -> Point<Pixels> {
-        self.0.borrow().base_handle.max_offset()
+        let max_offset = self.0.borrow().base_handle.max_offset();
+        point(max_offset.width, max_offset.height)
     }
 
     fn set_offset(&self, point: Point<Pixels>) {
@@ -948,7 +949,8 @@ impl ScrollableHandle for UniformListScrollHandle {
 
 impl ScrollableHandle for ListState {
     fn max_offset(&self) -> Point<Pixels> {
-        self.max_offset_for_scrollbar()
+        let max_offset = self.max_offset_for_scrollbar();
+        point(max_offset.width, max_offset.height)
     }
 
     fn set_offset(&self, point: Point<Pixels>) {
@@ -974,7 +976,8 @@ impl ScrollableHandle for ListState {
 
 impl ScrollableHandle for ScrollHandle {
     fn max_offset(&self) -> Point<Pixels> {
-        self.max_offset()
+        let max_offset = self.max_offset();
+        point(max_offset.width, max_offset.height)
     }
 
     fn set_offset(&self, point: Point<Pixels>) {
@@ -1167,9 +1170,10 @@ impl<T: ScrollableHandle> Element for ScrollbarElement<T> {
                                     ScrollbarAxis::Vertical => Anchor::TopRight,
                                 };
 
-                                let scroll_track_bounds = Bounds::from_anchor_and_size(
-                                    track_anchor,
-                                    self.origin + bounds.corner(track_anchor),
+                                let track_corner = gpui::Corner::from(track_anchor);
+                                let scroll_track_bounds = Bounds::from_corner_and_size(
+                                    track_corner,
+                                    self.origin + bounds.corner(track_corner),
                                     bounds.size.apply_along(axis.invert(), |_| {
                                         width
                                             + match state.style {
